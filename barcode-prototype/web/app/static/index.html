@@ -75,7 +75,7 @@
       let html = "";
 
       const images = data.images || [];
-      html += '<div class="section"><h3>🖼️ Фото с рамками</h3>';
+      html += '<div class="section"><h3>Фото с рамками</h3>';
       if (!images.length) {
         html += '<div>Нет изображений</div>';
       } else {
@@ -89,7 +89,7 @@
       html += '</div>';
 
       const detections = data.detections || [];
-      html += `<div class="section"><h3>🔍 Детекции: ${detections.length}</h3>`;
+      html += `<div class="section"><h3>Детекции: ${detections.length}</h3>`;
       if (!detections.length) {
         html += '<div>Ничего не найдено</div>';
       } else {
@@ -101,7 +101,7 @@
       html += '</div>';
 
       const barcodes = data.barcodes || [];
-      html += `<div class="section"><h3>📋 Штрихкоды / метки: ${barcodes.length}</h3>`;
+      html += `<div class="section"><h3>Штрихкоды / метки: ${barcodes.length}</h3>`;
       if (!barcodes.length) {
         html += '<div>Пусто</div>';
       } else {
