@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Barcode Prototype</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; }
+    h1 { font-size: 22px; }
+    .section { margin: 20px 0; padding: 16px; background: #f7f7f7; border-radius: 8px; }
+    .section h3 { margin-top: 0; }
+    img { max-width: 100%; margin: 8px 0; border-radius: 6px; display: block; border: 1px solid #ddd; }
+    .row { padding: 4px 0; border-bottom: 1px solid #eee; font-family: monospace; font-size: 13px; }
+    #status { color: #555; margin-top: 8px; }
+    input[type=file] { margin: 10px 0; }
+    button { padding: 8px 16px; font-size: 14px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Barcode Prototype</h1>
+
+  <div class="section">
+    <h3>Загрузка</h3>
+    <input type="file" id="files" multiple accept="image/*">
+    <br>
+    <button id="upload">Отправить</button>
+    <div id="status"></div>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const resultEl = document.getElementById("result");
+
+    document.getElementById("upload").addEventListener("click", async () => {
+      const input = document.getElementById("files");
+      if (!input.files.length) {
+        statusEl.textContent = "Выбери файлы";
+        return;
+      }
+
+      const form = new FormData();
+      for (const f of input.files) form.append("files", f);
+
+      statusEl.textContent = "Загружаю...";
+      resultEl.innerHTML = "";
+
+      const resp = await fetch("/boxes/upload", { method: "POST", body: form });
+      const data = await resp.json();
+      const boxId = data.box_id;
+      statusEl.textContent = `box_id: ${boxId}, кадров: ${data.frames_sent}. Жду результат...`;
+
+      poll(boxId);
+    });
+
+    async function poll(boxId) {
+      while (true) {
+        const resp = await fetch(`/boxes/${boxId}/result`);
+        const data = await resp.json();
+
+        if (data.status === "done") {
+          renderResult(data);
+          statusEl.textContent = "Готово";
+          return;
+        }
+        if (data.status === "unknown") {
+          statusEl.textContent = "box_id не найден на сервере";
+          return;
+        }
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+
+    function renderResult(data) {
+      let html = "";
+
+      const images = data.images || [];
+      html += '<div class="section"><h3>🖼️ Фото с рамками</h3>';
+      if (!images.length) {
+        html += '<div>Нет изображений</div>';
+      } else {
+        images.forEach((b64, i) => {
+          html += `<div style="margin-bottom:12px;">
+            <div style="font-size:12px;color:#666;">frame ${i} (${Math.round(b64.length * 3 / 4 / 1024)} KB)</div>
+            <img src="data:image/jpeg;base64,${b64}" alt="frame ${i}">
+          </div>`;
+        });
+      }
+      html += '</div>';
+
+      const detections = data.detections || [];
+      html += `<div class="section"><h3>🔍 Детекции: ${detections.length}</h3>`;
+      if (!detections.length) {
+        html += '<div>Ничего не найдено</div>';
+      } else {
+        detections.forEach((d, i) => {
+          const box = (d.box || []).map(v => Number(v).toFixed(1)).join(", ");
+          html += `<div class="row">#${i + 1} label=${d.label} score=${Number(d.score).toFixed(3)} box=[${box}]</div>`;
+        });
+      }
+      html += '</div>';
+
+      const barcodes = data.barcodes || [];
+      html += `<div class="section"><h3>📋 Штрихкоды / метки: ${barcodes.length}</h3>`;
+      if (!barcodes.length) {
+        html += '<div>Пусто</div>';
+      } else {
+        barcodes.forEach(b => {
+          html += `<div class="row">${b}</div>`;
+        });
+      }
+      html += '</div>';
+
+      resultEl.innerHTML = html;
+    }
+  </script>
+</body>
+</html>

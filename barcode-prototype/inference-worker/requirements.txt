@@ -1,0 +1,8 @@
+kafka-python==2.0.2
+opencv-python-headless==4.10.0.84
+zxing-cpp==3.1.0
+numpy==1.26.4
+torch
+Pillow 
+transformers
+torchvision
